@@ -1,13 +1,7 @@
 from commons.hw_nats_fast_interface import HW_NATS_FastInterface
 from commons.genetics import FastIndividual
 from commons.genetics import Genetic, Population
-from commons.utils import (
-    get_project_root, 
-    read_lookup_table, 
-    read_test_metrics, 
-    load_images, 
-    genotype_to_architecture
-)
+from commons.utils import get_project_root
 from typing import Callable, Iterable, Union
 import numpy as np
 
@@ -24,41 +18,42 @@ FreeREA_dict = {
 class GeneticSearch:
     def __init__(self, 
                  searchspace:HW_NATS_FastInterface,
-                 dataset:str="cifar10", 
-                 lookup:bool=True, 
-                 genetics_dict:dict=FreeREA_dict, 
+                 dataset:str="cifar10",
+                 genetics_dict:dict=FreeREA_dict,
+                 target_device:Union[None, str]=None, 
                  init_population:Union[None, Iterable[FastIndividual]]=None,
-                 fitness_weights:Union[None, np.ndarray]=None):
+                 fitness_weights:Union[None, np.ndarray]=np.array([0.5, -0.5])):
         
         self.dataset = dataset
-        self.score_names = ["naswot_score", "logsynflow_score", "skip_score"]
-        self.lookup = lookup
-        self.lookup_table = read_lookup_table(dataset=self.dataset) if self.lookup else None 
+        self.classification_scores = ["naswot_score", "logsynflow_score", "skip_score"]
+        # hardware aware scores changes based on whether or not one uses a given target device
+        if target_device is None:
+            self.hw_scores = ["flops", "params"]
+        else:
+            self.hw_scores = [f"{target_device}_energy"]
+        
         self.genetics_dict = genetics_dict
+        # weights used to combine classification performance with hardware performance.
         self.weights = fitness_weights
-        # get a random batch from dataset
-        self.images = load_images(dataset=dataset)
 
-        # instantiating a NATSInterface object
+        # instantiating a searchspace instance
         self.searchspace = searchspace
 
         # instantiating a population
         self.population = Population(
             space=self.searchspace, 
             init_population=True if init_population is None else init_population, 
-            n_individuals=self.genetics_dict["N"],  # N = population size
+            n_individuals=self.genetics_dict["N"],
             normalization="dynamic"
         )
 
         # initialize the object taking care of performing genetic operations
         self.genetic_operator = Genetic(
-            genome=self.searchspace.nats_ops(), 
+            genome=self.searchspace.all_ops, 
             strategy="comma", # population evolution strategy
             tournament_size=self.genetics_dict["n"], 
         )
 
-        # read the lookup table conditionally on using lookup tables in the first place
-        self.lookup_table = read_lookup_table(dataset=self.dataset) if self.lookup else None
         # preprocess population
         self.preprocess_population()
 
@@ -76,8 +71,6 @@ class GeneticSearch:
         Applies scoring and fitness function to the whole population. This allows each individual to 
         have the appropriate fields.
         """
-        # score the population
-        self.score_and_extremes(scores=self.get_metrics())
         # assign the fitness score
         self.assign_fitness()
 
@@ -111,16 +104,10 @@ class GeneticSearch:
             return child
         else:  # don't do recombination - simply return 1st parent
             return parents[0]  
-    # TODO: Merge compute fitness and assign_fitness
-    def score_and_extremes(self, scores:Iterable[Callable]): 
-        """This function scores the whole population and sets extremes values for the population."""
-        score_population(population=self.population, scores=scores)
-        for score in self.score_names:
-            self.population.set_extremes(score=score)
 
-    def compute_fitness(self, individual:FastIndividual, population:Population): 
+    def compute_fitness(self, individual:FastIndividual): 
         """This function returns the fitness of individuals according to FreeREA's paper"""
-        return fitness_score(individual=individual, population=population, style="dynamic", weights=self.weights)
+        self.searchspace.get_score_mean()
 
     def assign_fitness(self):
         """This function assigns to each invidual a given fitness score."""

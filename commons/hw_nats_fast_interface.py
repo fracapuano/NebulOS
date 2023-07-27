@@ -4,13 +4,16 @@ from .utils import get_project_root
 import numpy as np
 from numpy.typing import NDArray
 import json
+# seed all numpy operations
+np.random.seed(42)
 
 class HW_NATS_FastInterface:    
     def __init__(self, 
                  datapath:str=str(get_project_root()) + "/data/nebuloss.json", 
                  indexpath:str=str(get_project_root()) + "/data/nats_arch_index.json",
                  dataset:str="cifar10", 
-                 device:Text="edgegpu"):
+                 device:Text="edgegpu", 
+                 scores_sample_size:int=1e3):
         
         AVAILABLE_DATASETS = ["cifar10", "cifar100", "ImageNet16-120"]
         AVAILABLE_DEVICES = ["edgegpu", "eyeriss", "fpga"]
@@ -33,6 +36,8 @@ class HW_NATS_FastInterface:
         # store dataset field
         self._dataset = dataset
         self.target_device = device
+        # architectures to use to estimate mean and std for scores normalization
+        self.random_indices = np.random.choice(len(self), scores_sample_size, replace=False)
 
     def __len__(self)->int:
         """Number of architectures in considered search space."""
@@ -112,10 +117,11 @@ class HW_NATS_FastInterface:
             The score values are retrieved from each data point in the dataset and averaged.
         """
         if not hasattr(self, f"mean_{score_name}"):
-            setattr(self, 
-                    f"mean_{score_name}", 
-                    np.array([self[i][self.dataset][score_name] for i in range(len(self))]).mean()
-                    )
+            # compute the mean on 1000 instances
+            mean_score = np.mean([self[i][self.dataset][score_name] for i in self.random_indices])
+
+            # set the mean score accordingly
+            setattr(self, f"mean_{score_name}", mean_score)
             self.get_score_mean(score_name=score_name)
         
         return getattr(self, f"mean_{score_name}")
@@ -134,11 +140,12 @@ class HW_NATS_FastInterface:
             The score values are retrieved from each data point in the dataset, and the standard deviation is calculated.
         """
         if not hasattr(self, f"std_{score_name}"):
-            setattr(self, 
-                    f"std_{score_name}", 
-                    np.array([self[i][self.dataset][score_name] for i in range(len(self))]).std()
-                    )
-            self.get_score_mean(score_name=score_name)
+            # compute the mean on 1000 instances
+            std_score = np.std([self[i][self.dataset][score_name] for i in self.random_indices])
+
+            # set the mean score accordingly
+            setattr(self, f"std_{score_name}", std_score)
+            self.get_score_std(score_name=score_name)
         
         return getattr(self, f"std_{score_name}")
 

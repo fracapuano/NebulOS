@@ -136,12 +136,6 @@ class Population:
         self.oldest = None
         self.worst_n = None
         self.normalization = normalization.lower()
-        if self.normalization in ['minmax', 'standard']:
-            df_scores = pd.read_csv(f'{str(get_project_root())}/cachedmetrics/{self.space.dataset}_{normalization}.csv')
-            self.scores_dict = {
-                key: value for value, key in enumerate(df_scores.columns)
-            }
-            self.extreme_scores = df_scores.values
     
     def __iter__(self): 
         for i in self._population: 

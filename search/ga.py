@@ -2,8 +2,9 @@ from commons.hw_nats_fast_interface import HW_NATS_FastInterface
 from commons.genetics import FastIndividual
 from commons.genetics import Genetic, Population
 from commons.utils import get_project_root
-from typing import Callable, Iterable, Union
+from typing import Callable, Iterable, Union, Text
 import numpy as np
+from collections import OrderedDict
 
 FreeREA_dict = {
     "n": 5,  # tournament size
@@ -18,30 +19,31 @@ FreeREA_dict = {
 class GeneticSearch:
     def __init__(self, 
                  searchspace:HW_NATS_FastInterface,
-                 dataset:str="cifar10",
                  genetics_dict:dict=FreeREA_dict,
-                 target_device:Union[None, str]=None, 
                  init_population:Union[None, Iterable[FastIndividual]]=None,
-                 fitness_weights:Union[None, np.ndarray]=np.array([0.5, -0.5])):
+                 fitness_weights:Union[None, np.ndarray]=np.array([0.5, 0.5])):
         
-        self.dataset = dataset
-        self.classification_scores = ["naswot_score", "logsynflow_score", "skip_score"]
+        # instantiating a searchspace instance
+        self.searchspace = searchspace
+        # instatiating the dataset based on searchspace
+        self.dataset = self.searchspace.dataset
+        # instatiating the device based on searchspace
+        self.target_device = self.searchspace.target_device
         # hardware aware scores changes based on whether or not one uses a given target device
-        if target_device is None:
+        if self.target_device is None:
             self.hw_scores = ["flops", "params"]
         else:
-            self.hw_scores = [f"{target_device}_energy"]
-        
+            self.hw_scores = [f"{self.target_device}_energy"]
+
+        # scores used to evaluate the architectures on downstream tasks
+        self.classification_scores = ["naswot_score", "logsynflow_score", "skip_score"]
         self.genetics_dict = genetics_dict
         # weights used to combine classification performance with hardware performance.
         self.weights = fitness_weights
 
-        # instantiating a searchspace instance
-        self.searchspace = searchspace
-
         # instantiating a population
         self.population = Population(
-            space=self.searchspace, 
+            searchspace=self.searchspace, 
             init_population=True if init_population is None else init_population, 
             n_individuals=self.genetics_dict["N"],
             normalization="dynamic"
@@ -52,19 +54,74 @@ class GeneticSearch:
             genome=self.searchspace.all_ops, 
             strategy="comma", # population evolution strategy
             tournament_size=self.genetics_dict["n"], 
+            searchspace=self.searchspace
         )
 
         # preprocess population
         self.preprocess_population()
+   
+    def normalize_score(self, score_value:float, score_name:Text, type:Text="std")->float:
+        """
+        Normalize the given score value using a specified normalization type.
 
-    def fitness_function(self, individual:FastIndividual):
-        if individual.fitness is None:
-            individual._fitness = self.searchspace.list_to_accuracy(
-                input_list=individual.genotype
-            )
+        Args:
+            score_value (float): The score value to be normalized.
+            score_name (Text): The name of the score used for normalization.
+            type (Text, optional): The type of normalization to be applied. Defaults to "std".
 
-        return individual
+        Returns:
+            float: The normalized score value.
 
+        Raises:
+            ValueError: If the specified normalization type is not available.
+
+        Note:
+            The available normalization types are:
+            - "std": Standard score normalization using mean and standard deviation.
+        """
+        if type == "std":
+            score_mean = self.searchspace.get_score_mean(score_name)
+            score_std = self.searchspace.get_score_std(score_name)
+            
+            return (score_value - score_mean) / score_std
+        else:
+            raise ValueError(f"Normalization type {type} not available!")
+
+    def fitness_function(self, individual:FastIndividual)->FastIndividual: 
+        """
+        Directly overwrites the fitness attribute for a given individual.
+
+        Args: 
+            individual (FastIndividual): Individual to score.
+
+        # Returns:
+        #     FastIndividual: Individual, with fitness field.
+        """
+        if individual.fitness is None:  # None at initialization only
+            scores = np.array([
+                self.normalize_score(
+                    score_value=self.searchspace.list_to_score(input_list=individual.genotype, 
+                                                            score=score), 
+                    score_name=score
+                )
+                for score in self.classification_scores
+            ])
+            hardware_performance = np.array([
+                self.normalize_score(
+                    score_value=self.searchspace.list_to_score(input_list=individual.genotype, 
+                                                            score=score),
+                    score_name=score
+                )
+                for score in self.hw_scores
+            ])
+            # individual fitness is a convex combination of multiple scores
+            network_score = (np.ones_like(scores) / len(scores)) @ scores
+            network_hardware_performance =  (np.ones_like(hardware_performance) / len(hardware_performance)) @ hardware_performance
+            
+            # in the hardware aware contest performance is in a direct tradeoff with hardware performance
+            individual._fitness = np.array([network_score, -network_hardware_performance]) @ self.weights
+        
+        # return individual
 
     def preprocess_population(self): 
         """
@@ -105,55 +162,17 @@ class GeneticSearch:
         else:  # don't do recombination - simply return 1st parent
             return parents[0]  
 
-    def compute_fitness(self, individual:FastIndividual): 
-        """This function returns the fitness of individuals according to FreeREA's paper"""
-        self.searchspace.get_score_mean()
-
     def assign_fitness(self):
         """This function assigns to each invidual a given fitness score."""
         # define a fitness function and compute fitness for each individual
-        fitness_function = lambda individual: self.compute_fitness(individual=individual,
-                                                                   population=self.population
-                                                                   )
+        fitness_function = lambda individual: self.fitness_function(individual=individual)
         self.population.update_fitness(fitness_function=fitness_function)
-
-    def get_metrics(self, dataset:str=None)->Iterable[Callable]: 
-        """
-        This function returns an iterable of functions instantiated relatively to the current
-        dataset and a sample batch.
-        """
-        # boolean switch
-        custom_images = False
-        if dataset is not None:  # return metrics for custom dataset
-            images = load_images(dataset=dataset)
-            custom_images = True
-        
-        images = self.images if not custom_images else images
-        # computing the functions with respect to the different available datasets
-        get_naswot = lambda individual: score_naswot(
-            individual=individual, images=images, lookup_table=self.lookup_table
-            )
-        get_logsynflow = lambda individual: score_logsynflow(
-            individual=individual, images=images, lookup_table=self.lookup_table
-            )
-        get_skipped = lambda individual: score_skipped(
-            individual=individual, lookup_table=self.lookup_table)
-        return [get_naswot, get_logsynflow, get_skipped]
 
     def obtain_parents(self, n_parents:int=2): 
         # obtain tournament
         tournament = self.genetic_operator.tournament(population=self.population.individuals)
         # turn tournament into a local population 
-        local_population = Population(space=self.searchspace, init_population=tournament)
-        for score in self.score_names:
-            local_population.set_extremes(score=score)
-        
-        # define a fitness function and compute fitness for each individual
-        fitness_function = lambda individual: self.compute_fitness(individual=individual,
-                                                                   population=local_population
-                                                                   )
-        local_population.update_fitness(fitness_function=fitness_function)
-        parents = sorted(local_population.individuals, key = lambda individual: individual.fitness, reverse=True)[:n_parents]
+        parents = sorted(tournament, key = lambda individual: individual.fitness, reverse=True)[:n_parents]
         return parents
 
     def solve(self, max_generations:int=100, return_trajectory:bool=False)->Union[FastIndividual, float]: 
@@ -172,11 +191,11 @@ class GeneticSearch:
         MAX_GENERATIONS = max_generations
         population, individuals = self.population, self.population.individuals
         bests = []
-        history = {}
+        history = OrderedDict()
 
         for gen in range(MAX_GENERATIONS):
             # store the population
-            history.update({genotype_to_architecture(ind.genotype): ind for ind in population})
+            history.update({self.searchspace.list_to_architecture(ind.genotype): ind for ind in population})
             # save best individual
             bests.append(max(individuals, key=lambda ind: ind.fitness))
             # perform ageing
@@ -197,29 +216,12 @@ class GeneticSearch:
             population.remove_from_population(attribute="age", ascending=False)
             # overwrite population
             individuals = population.individuals
-
-        # in FreeREA (as in REA) the best individual is defined as the best found so far.
-        # this returns the fittest individual in the population of all the architectures ever tried.
-        all_individuals = Population(
-            space=self.searchspace, 
-            init_population=list(history.values()))
-        for score in self.score_names:
-            all_individuals.set_extremes(score=score)
-
-        compute_fitness = lambda ind: fitness_score(
-            ind, 
-            population=all_individuals, 
-            style=self.population.normalization, 
-            weights=self.weights
-            )
-        
-        best_individual = max(all_individuals, key=compute_fitness)
+       
+        best_individual = max(history.values(), key=lambda ind: ind._fitness)
         # appending in last position the actual best element
         bests.append(best_individual)
 
-        # retrieve test accuracy for this individual
-        test_metrics = read_test_metrics(dataset=self.dataset)
-        test_accuracy = test_metrics[best_individual.index, 1]
+        test_accuracy = self.searchspace.list_to_accuracy(best_individual.genotype)
 
         if not return_trajectory:
             return (best_individual, test_accuracy)

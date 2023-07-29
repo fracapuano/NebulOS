@@ -10,7 +10,7 @@ class Individual:
     # for typing purposes only 
     pass
 
-class FastIndividual: 
+class FastIndividual(Individual): 
     def __init__(
         self,
         genotype:List[str],
@@ -56,9 +56,9 @@ class Genetic:
     def __init__(
         self, 
         genome:Iterable[str], 
-        searchspace:HW_NATS_FastInterface):
+        searchspace:HW_NATS_FastInterface,
         strategy:Tuple[str, str]="comma", 
-        tournament_size:int=5,
+        tournament_size:int=5):
         
         self.genome = set(genome) if not isinstance(genome, set) else genome
         self.strategy = strategy
@@ -123,13 +123,13 @@ class Genetic:
 
 class Population: 
     def __init__(self,
-                 space:object,
+                 searchspace:object,
                  init_population:Union[bool, Iterable]=True,
                  n_individuals:int=20,
                  normalization:str='dynamic'): 
-        self.space = space
+        self.searchspace = searchspace
         if init_population is True:
-            self._population = generate_population(searchspace_interface=space, n_individuals=n_individuals)
+            self._population = generate_population(searchspace_interface=searchspace, n_individuals=n_individuals)
         else: 
             self._population = init_population
         
@@ -168,7 +168,7 @@ class Population:
     def update_fitness(self, fitness_function:Callable): 
         """Updates the fitness value of individuals in the population"""
         for individual in self.individuals: 
-            individual.overwrite_fitness(fitness_function(individual))
+            fitness_function(individual)
     
     def apply_on_individuals(self, function:Callable)->Union[Iterable, None]: 
         """Applies a function on each individual in the population
@@ -253,7 +253,7 @@ class Population:
     def set_worst_n(self, attribute:str="fitness", n:int=2): 
         """Sets worst n elements based on the value of arbitrary attribute"""
         self.worst_n = sorted(self.individuals, key=lambda ind: getattr(ind, attribute))[:n]
-    
+
 
 def generate_population(searchspace_interface:HW_NATS_FastInterface, n_individuals:int=20)->list: 
     """Generate a population of individuals"""
@@ -264,7 +264,7 @@ def generate_population(searchspace_interface:HW_NATS_FastInterface, n_individua
     genotypes = map(lambda cell: searchspace_interface.architecture_to_list(cell), cells)
     # turn full architecture and cell-structure into genetic population individual
     population = [
-        FastIndividual(genotype=genotype, index=index, genototype_to_index=searchspace_interface.architecture_to_index) 
+        FastIndividual(genotype=genotype, index=index, genotype_to_idx=searchspace_interface.architecture_to_index) 
         for genotype, index in zip(genotypes, indices)
     ]
     return population

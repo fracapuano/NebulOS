@@ -21,7 +21,7 @@ class HW_NATS_FastInterface:
         if dataset not in AVAILABLE_DATASETS:
             raise ValueError(f"Dataset {dataset} not in {AVAILABLE_DATASETS}!")
         
-        if device not in AVAILABLE_DEVICES:
+        if device not in AVAILABLE_DEVICES and device is not None:
             raise ValueError(f"Device {device} not in {AVAILABLE_DEVICES}!")
 
         # parent init
@@ -37,7 +37,7 @@ class HW_NATS_FastInterface:
         self._dataset = dataset
         self.target_device = device
         # architectures to use to estimate mean and std for scores normalization
-        self.random_indices = np.random.choice(len(self), scores_sample_size, replace=False)
+        self.random_indices = np.random.choice(len(self), int(scores_sample_size), replace=False)
 
     def __len__(self)->int:
         """Number of architectures in considered search space."""

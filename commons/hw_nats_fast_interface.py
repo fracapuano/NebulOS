@@ -5,9 +5,6 @@ import numpy as np
 from numpy.typing import NDArray
 import json
 
-# seed all numpy operations
-np.random.seed(42)
-
 class HW_NATS_FastInterface:    
     def __init__(self, 
                  datapath:str=str(get_project_root()) + "/data/nebuloss.json", 

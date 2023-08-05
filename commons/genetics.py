@@ -3,26 +3,63 @@ import numpy as np
 from copy import deepcopy as copy
 from .utils import *
 from itertools import chain
-import pandas as pd
+from abc import abstractproperty, abstractmethod
 from .hw_nats_fast_interface import HW_NATS_FastInterface
 
+
 class Individual:
-    # for typing purposes only 
-    pass
+    """
+    Base Class for all individuals in the population.
+    Base class attributes are the genotype identifying the individual (and, therefore, the network) and its
+    index within the search space it is drawn from.
+    """
+    def __init__(self, genotype:List[str], index:int):
+        self._genotype = genotype
+        self.index=index
+        self._fitness = None
+    
+    @abstractproperty
+    def genotype(self): 
+        """This class is used to define the network architecture."""
+        raise NotImplementedError("Implement this property in child classes!")
+    
+    @abstractproperty
+    def fitness(self):
+        """This class is used to define the fitness of the individual."""
+        raise NotImplementedError("Implement this property in child classes!")
+
+    @abstractmethod
+    def update_idx(self):
+        """Update the index of the individual in the population"""
+        raise NotImplementedError("Implement this method in child classes!")
+    
+    @abstractmethod
+    def update_genotype(self, new_genotype:List[str]): 
+        """Update current genotype with new one. When doing so, also the network field is updated"""
+        raise NotImplementedError("Implement this method in child classes!")
+    
+    @abstractmethod
+    def update_fitness(self, metric:Callable, attribute:str="net"): 
+        """Update the current value of fitness using provided metric"""
+        raise NotImplementedError("Implement this method in child classes!")
+    
 
 class FastIndividual(Individual): 
+    """
+    Fast individuals are used in the context of age-regularized genetic algorithms and, therefore, are
+    characterized by an additional field, i.e. age.
+    """
     def __init__(
         self,
         genotype:List[str],
-        genotype_to_idx:Dict[str, int],
         index:int, 
+        genotype_to_idx:Dict[str, int],
         age:int=0):
         
-        self._genotype = genotype
-        self.index=index
-        self.age = age
+        # init parent class
+        super().__init__(genotype, index)
 
-        self._fitness = None
+        self.age = age
         self.genotype_to_idx = genotype_to_idx
         
     @property
@@ -44,14 +81,7 @@ class FastIndividual(Individual):
     def update_fitness(self, metric:Callable, attribute:str="net"): 
         """Update the current value of fitness using provided metric"""
         self._fitness = metric(getattr(self, attribute))
-    
-    def overwrite_fitness(self, new_fitness:float):
-        """Overwrite current value of fitness"""
-        if isinstance(new_fitness, float) or isinstance(new_fitness, int): 
-            self._fitness = new_fitness
-        else: 
-            raise ValueError(f"New fitness value ({new_fitness}) is not a number!")
-        
+
 class Genetic: 
     def __init__(
         self, 
@@ -213,7 +243,6 @@ class Population:
     
     def add_to_population(self, new_individuals:Iterable[Individual]): 
         """Add new_individuals to population"""
-        # TODO: add a block that if new_individuals are over the current extremes resets those
         self._population = list(chain(self.individuals, new_individuals))
     
     def remove_from_population(self, attribute:str="fitness", n:int=1, ascending:bool=True): 
@@ -253,10 +282,10 @@ class Population:
     def set_worst_n(self, attribute:str="fitness", n:int=2): 
         """Sets worst n elements based on the value of arbitrary attribute"""
         self.worst_n = sorted(self.individuals, key=lambda ind: getattr(ind, attribute))[:n]
-
+        
 
 def generate_population(searchspace_interface:HW_NATS_FastInterface, n_individuals:int=20)->list: 
-    """Generate a population of individuals"""
+    """This function generates a population of FastInviduals based on the searchspace interface"""
     # at first generate full cell-structure and unique network indices
     cells, indices = searchspace_interface.generate_random_samples(n_samples=n_individuals)
     
@@ -267,4 +296,5 @@ def generate_population(searchspace_interface:HW_NATS_FastInterface, n_individua
         FastIndividual(genotype=genotype, index=index, genotype_to_idx=searchspace_interface.architecture_to_index) 
         for genotype, index in zip(genotypes, indices)
     ]
+    
     return population

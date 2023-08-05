@@ -1,8 +1,5 @@
-<div style="text-align: center;">
-  Welcome! 👋 
-  This is the GitHub repository of the 18th ASP cycle coolest project! 🚀
-  <a href**="https://ibb.co/gTkPrng"><img src="https://i.ibb.co/C7RMwr0/Nebul-OSS-logo.png" alt="Nebul-OSS-logo" border="0"></a>
-</div>
+<a href="https://ibb.co/gTkPrng"><img src="https://i.ibb.co/C7RMwr0/Nebul-OSS-logo.png" alt="Nebul-OSS-logo" border="0"></a>
+Welcome! 👋 This is the GitHub repository of the 18th ASP cycle coolest project! 🚀
 
 # NebulOSS: Green-AI, for Real 🌿
 NebulOSS is an extension of the work presented in FreeREA, focusing on the real-world application of Green-AI. By adopting actual hardware-aware metrics, we are not just promising Green-AI but delivering it.

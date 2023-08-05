@@ -4,6 +4,7 @@ from .utils import get_project_root
 import numpy as np
 from numpy.typing import NDArray
 import json
+
 # seed all numpy operations
 np.random.seed(42)
 
@@ -179,86 +180,7 @@ class HW_NATS_FastInterface:
         ops = chain(*[subcell.split("|")[1:-1] for subcell in subcells])
         
         return list(ops)
-    
-    def encode_architecture(
-            self, 
-            architecture_string:str,
-            onehot:bool=False, 
-            verbose:bool=False
-    )->NDArray: 
-        """
-        This function represents a given architecture string with a numerical
-        array. 
-        Each architecture is represented through an `architecture_string` of lenght `m` (clearly 
-        enough, `m = m(searchspace)`). Each operation in the base cell can be any of the `n` ops 
-        in defined at the search-space level. In light of this, each individual can be represented 
-        via a (very sparse) `m x n` array `{0,1}^{m x n}`.
 
-        Args: 
-            architecture_string (str): String used to actually represent the architecture currently 
-                                       considered.
-            onehot (bool, optional): Boolean flag representing whether or not to use one hot encoding. 
-                                     Defaults to False.
-
-        Returns: 
-            NDArray: Either a one-hot or integer encoded representation of a given architecture string.
-        """
-        if architecture_string == "": 
-            return ""
-        
-        # turn architecture string into the list of operations in each cell
-        architecture_list = self.architecture_to_list(architecture_string=architecture_string)
-        # mapping each operation to the corresponding integer value according to the ordered ops available
-        try: 
-            architecture_integer = np.fromiter(
-                map(lambda op: self.ordered_all_ops.index(op.split("~")[0]), architecture_list), 
-                dtype=int
-            )
-        except ValueError:
-            if verbose:
-                print(f"architecture {architecture_string} contains operations not in {self.all_ops}")
-            return "conversion error"
-        
-        if onehot:
-            # initialize a zeroed-vector
-            onehot_architecture = np.zeros((architecture_integer.size, len(self.all_ops)))
-            # integer encoding -> one hot encoding
-            onehot_architecture[np.arange(architecture_integer.size), architecture_integer] = 1
-            
-            return onehot_architecture
-        else:
-            return architecture_integer
-    
-    def decode_architecture(
-            self, 
-            architecture_encoded:NDArray,
-            onehot:bool=False
-    )->str:
-        """
-        This function decodes the numerical representation of a given architecture, producing an
-        actual architecture string.
-        Each architecture is represented through an `architecture_encoded` array whose first dimension
-        always is `m` (clearly enough, `m = m(searchspace)`). Optionally on `onehot`, an architecture 
-        is represented through a matrix (`onehot=True`) or an array (`onehot=False`). 
-
-        Args: 
-            architecture_encoded (NDArray): Numerical representation of a given architecture.
-            onehot (bool, optional): Boolean flag representing whether or not one hot encoding has been
-                                     used. Defaults to False.
-
-        Returns: 
-            str: String used to actually represent the architecture currently considered.
-        """
-        # Find the indices of the operations optionally on the use of onehot encoding.
-        indices = np.argmax(architecture_encoded, axis=1) if onehot else architecture_encoded.tolist()
-        levels = ["~0", "~0", "~1", "~0", "~1", "~2"]
-        # Map the indices to the corresponding operations
-        architecture_list = [self.ordered_all_ops[index] + level for index, level in zip(indices, levels)]
-        # Concatenate the operations to form the architecture string
-        architecture_string = self.list_to_architecture(input_list=architecture_list)
-
-        return architecture_string
-    
     def list_to_accuracy(self, input_list:List[str])->float: 
         """Returns the test accuracy of an input list representing the architecture. 
         This list contains the operations.

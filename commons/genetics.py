@@ -246,15 +246,16 @@ class Population:
         self._population = list(chain(self.individuals, new_individuals))
     
     def remove_from_population(self, attribute:str="fitness", n:int=1, ascending:bool=True): 
-        """Remove first/last `n` elements from sorted population population in `ascending/descending`
-        order based on the value of `attribute`"""
-        # TODO: Implement a removal from population strategy that is O(n) (remove min individual) 
-        # - currently sorting is obviously not!
+        """
+        Remove first/last `n` elements from sorted population population in `ascending/descending`
+        order based on the value of `attribute`.
+        """
+        # check that input attribute is an attribute of all the individuals
         if not all([hasattr(el, attribute) for el in self.individuals]):
             raise ValueError(f"Attribute '{attribute}' is not an attribute of all the individuals!")
+        
         # sort the population based on the value of attribute
         sorted_population = sorted(self.individuals, key=lambda ind: getattr(ind, attribute), reverse=False if ascending else True)
-        
         # new population is old population minus the `n` worst individuals with respect to `attribute`
         self.update_population(sorted_population[n:])
 

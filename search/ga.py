@@ -1,8 +1,7 @@
 from commons.hw_nats_fast_interface import HW_NATS_FastInterface
 from commons.genetics import FastIndividual
 from commons.genetics import Genetic, Population
-from commons.utils import get_project_root
-from typing import Callable, Iterable, Union, Text
+from typing import Iterable, Union, Text
 import numpy as np
 from collections import OrderedDict
 
@@ -11,9 +10,9 @@ FreeREA_dict = {
     "N": 25,  # population size
     "mutation_prob": 1.,  # always mutates
     "recombination_prob": 1.,  # always recombines
-    "P_parent1": 0.5,  # fraction of child that comes from parent1 on average
-    "n_mutations": 1,  # how many loci to mutate
-    "loci_prob": None,
+    "P_parent1": 0.5,  # fraction of child that comes from parent1 (on average)
+    "n_mutations": 1,  # how many loci to mutate at a time
+    "loci_prob": None,  # the probability of mutating a given locus (if None, uniform)
 }
 
 class GeneticSearch:
@@ -178,7 +177,7 @@ class GeneticSearch:
     def solve(self, max_generations:int=100, return_trajectory:bool=False)->Union[FastIndividual, float]: 
         """
         This function performs Regularized Evolutionary Algorithm (REA) with Training-Free metrics. 
-        Details on the whole procedure can be found here: https://arxiv.org/pdf/2207.05135.pdf. 
+        Details on the whole procedure can be found in FreeREA (https://arxiv.org/pdf/2207.05135.pdf).
         
         Args: 
             max_generations (int, optional): TODO - ADD DESCRIPTION. Defaults to 100.

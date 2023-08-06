@@ -1,6 +1,8 @@
-<p style="text-align: center;">
-<a href="https://ibb.co/gTkPrng"><img src="https://i.ibb.co/C7RMwr0/Nebul-OSS-logo.png" alt="Nebul-OSS-logo" border="0"></a>
-</p>
+<div align="center">
+  <a href="https://ibb.co/gTkPrng">
+    <img src="https://i.ibb.co/C7RMwr0/Nebul-OSS-logo.png" alt="Nebul-OSS-logo" border="0">
+  </a>
+</div>
 
 Welcome! 👋 This is the GitHub repository of the 18th ASP cycle coolest project! 🚀
 

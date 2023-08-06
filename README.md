@@ -4,12 +4,23 @@
   </a>
 </div>
 
-Welcome! 👋 This is the GitHub repository of the 18th ASP cycle coolest project! 🚀
-
 # NebulOSS: Green-AI, for Real 🌿
-NebulOSS is an extension of the work presented in FreeREA, focusing on the real-world application of Green-AI. By adopting actual hardware-aware metrics, we are not just promising Green-AI but delivering it.
+Welcome! 👋 
+This is the GitHub repository of the 18th ASP cycle coolest project! 🚀
+
+> Big news! A live demo of our project is available [here](link_to_live_demo).
+
+In NebulOSS, we push forward the work presented in FreeREA, focusing on delivering an end-to-end solution for automated and energy-efficient Deep Neural Network design for Computer Vision applications. You can find an extended abstract of this project [here](link_to_extended_abstract_website).
 
 ## Foreword 📝
+
+### Alta Scuola Politecnica (ASP)
+Alta Scuola Politecnica (more [here](https://www.asp-poli.it/)) is the **joint honors program** of Italy's best technical universities, Politecnico di Milano ([18th world-wide, QS Rankings](https://www.topuniversities.com/university-rankings/university-subject-rankings/2023/engineering-technology?&page=1)) and Politecnico di Torino ([45th world-wide, QS Rankings](https://www.topuniversities.com/university-rankings/university-subject-rankings/2023/engineering-technology?&page=1)). 
+Each year, 90 students from Politecnico di Milano and 60 from Politecnico di Torino are selected from a highly competitive pool and those who succeed receive free tuition for their MSc in exchange for ~1.5 years working as **student consultants** with a partner company for an industrial project.
+
+The project we present has been carried out with the invaluable of folks at [Nebuly](https://www.nebuly.com/) (8.3k 🌟 on GitHub), the company behind the very well-known [`nebullvum`](https://github.com/nebuly-ai/nebuly/tree/main/optimization/nebullvm) open-source AI-acceleration library 🚀
+
+Alongside them, we have developed stable and reliable AI-acceleration tools that, in a nutshell, are capable of designing just the right network for each specific target device. With this, we propose a new answer to an old Deep Learning question: how to bring large models to tiny devices. Screw forcing a circle in a square-hole: we are trouble-makers, better to change the model from the ground up!
 
 ### FreeREA
 FreeREA is a custom cell-based evolution NAS algorithm that aims to maximize model accuracy while preserving size and computational constraints typical of tiny devices. It exploits an optimized combination of training-free metrics to rank architectures during the search, without the need for model training. [Read more about FreeREA](https://arxiv.org/abs/2207.05135).

@@ -5,6 +5,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+st.set_page_config(layout="wide")
 
 DAYS_7 = 604800
 
@@ -38,16 +39,16 @@ def main():
     # load the lookup table of NebulOSS metrics
     df_nebuloss = load_lookup_table()
     # add a title
-    st.title("Architecture Search App")
+    st.sidebar.title("Architecture Search App")
 
     # dropdown menu for dataset selection
-    dataset = st.selectbox("Select Dataset", DATASETS)
+    dataset = st.sidebar.selectbox("Select Dataset", DATASETS)
 
     # dropdown menu for device selection
-    device = st.selectbox("Select Device", DEVICES)
+    device = st.sidebar.selectbox("Select Device", DEVICES)
 
     # slider for performance weight selection
-    performance_weight = st.slider(
+    performance_weight = st.sidebar.slider(
         "Select trade-off between PERFORMANCE WEIGHT and HARDWARE WEIGHT.\nHigher values will give larger weight to the performance.", 
         min_value=0.0, 
         max_value=1.0, 
@@ -59,13 +60,24 @@ def main():
 
     # subset the dataframe for the current daset and device
     df_nebuloss_dataset = subset_dataframe(df_nebuloss, dataset)
-    
+
+    # create a single figure
+    fig = plt.figure(figsize=(15, 6))
+
+    # SCATTER PLOT
     # plot the architecture space for this combination of device and dataset
+    plt.subplot(1, 2, 1)
     plt.scatter(
         df_nebuloss_dataset.loc[df_nebuloss['dataset'] == dataset, f'{device}_energy'], 
         df_nebuloss_dataset.loc[df_nebuloss['dataset'] == dataset, 'validation_accuracy'], 
         c = 'lightgray'
     )
+    # find the best architecture -> this will be plotted as a blue star on top of the other architectures
+    best_arch_idx = 9930
+    plt.scatter(df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == best_arch_idx, f'{device}_energy'], 
+                df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == best_arch_idx, 'validation_accuracy'], 
+                c = 'blue', marker = '*', label = 'Best TF-Architecture', s = 100)
+
     # trigger the search
     searchspace_interface = HW_NATS_FastInterface(device=device, dataset=dataset)
     search = GeneticSearch(
@@ -75,17 +87,15 @@ def main():
     # this perform the actual architecture search
     results = search.solve()
 
-    # SCATTER PLOT
-    # find the best architecture -> this will be plotted as a star on top of the other architectures
+    # plot the best architecture for this convex combination of weights -> this will be plotted as a red dot
     arch_idx = searchspace_interface.architecture_to_index["/".join(results[0].genotype)]
     plt.scatter(df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == arch_idx, f'{device}_energy'], 
                 df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == arch_idx, 'validation_accuracy'], 
-                c = 'red')
+                c = 'red', label = 'NebulOSS Architecture')
     plt.xlabel(f'{device.upper()} energy')
     plt.ylabel('Validation Accuracy')
     plt.title(f'Validation Accuracy vs. {device.upper()} Energy - {dataset}')
-    # plot the scatter plot
-    st.pyplot(plt)
+    plt.legend()
 
     # RADAR CHART
     # find the quantiles dataframe
@@ -103,7 +113,7 @@ def main():
     angles += angles[:1]
     
     # initialise the spider plot
-    ax = plt.subplot(111, polar=True)
+    ax = plt.subplot(122, polar=True)
     
     # draw one axe per variable + add labels
     plt.xticks(angles[:-1], categories, color='grey', size=8)
@@ -117,13 +127,20 @@ def main():
     # we need to repeat the first value to close the circular graph:
     values=row_to_plot.values.flatten().tolist()
     values += values[:1]
-    ax.plot(angles, values, linewidth=1, linestyle='solid', label = 'Best architecture', c = 'red')
+    ax.plot(angles, values, linewidth=1, linestyle='solid', label = 'NebulOSS Architecture', c = 'red')
     # fill area
     ax.fill(angles, values, 'r', alpha=0.1)
     # add title
     plt.title(f'Metrics for best architecture - {dataset}x{device.upper()}')
-    # plot the scatter plot
-    st.pyplot(plt)
+    # plot the radar plot for the best architecture
+    best_row_to_plot = quantiles.loc[quantiles['idx'] == best_arch_idx, categories]
+    best_values=best_row_to_plot.values.flatten().tolist()
+    best_values += best_values[:1]
+    ax.plot(angles, best_values, linewidth=1, linestyle='solid', label = 'Best TF-Architecture', c = 'blue')
+    # Fill area
+    ax.fill(angles, best_values, 'b', alpha=0.1)
+    plt.legend(loc='upper right', bbox_to_anchor=(0.5, 0.1))
+    st.pyplot(fig)
 
 if __name__ == "__main__":
     main()

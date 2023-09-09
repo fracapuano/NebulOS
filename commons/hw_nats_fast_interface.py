@@ -2,7 +2,6 @@ from typing import Set, Text, List, Tuple, Dict
 from itertools import chain
 from .utils import get_project_root
 import numpy as np
-from numpy.typing import NDArray
 import json
 
 class HW_NATS_FastInterface:    

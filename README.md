@@ -8,11 +8,11 @@
 Welcome to the GitHub repository of the 18th ASP cycle coolest project! 🚀
 
 With NebulOS, we push the boundaries AI adoption, focusing on how to design architectures tailored for the hardware on which they run.
-During this wonderful journey, we counted on the support of the amazing people at [Nebuly](https://www.nebuly.com/) (8.3k 🌟 on GitHub), as well the guidance and help by Prof. Barbara Caputo (Politecnico di Torino, Top50 Universities world-wide), and Prof. Stefana Maja Broadbent (Politecnico di Milano, Top20 Universities world-wide).
+During this wonderful journey, we counted on the support of the amazing people at [Nebuly](https://www.nebuly.com/) (8.3k 🌟 on GitHub), as well the guidance and help by Prof. [Barbara Caputo](linkedin.com/in/barbara-caputo-a610201a7/?originalSubdomain=it) (Politecnico di Torino, Top50 Universities world-wide), and Prof. [Stefana Maja Broadbent](https://www.linkedin.com/in/stefanabroadbent/?originalSubdomain=uk) (Politecnico di Milano, Top20 Universities world-wide).
 
 <div align="center">
   <a href="https://ibb.co/gTkPrng">
-    <img src="https://i.ibb.co/5BnTNRd/Frame-4.png" width=400 alt="Frame-4" border="0">
+    <img src="https://i.ibb.co/5BnTNRd/Frame-4.png" alt="Frame-4" border="0">
   </a>
 </div>
 

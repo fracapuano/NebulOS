@@ -153,3 +153,13 @@ dmypy.json
 cython_debug/
 
 .vscode
+
+# images 
+line/**
+radar/**
+
+# notebook
+**.ipynb
+
+# zip files
+**.tar.gz

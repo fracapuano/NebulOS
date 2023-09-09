@@ -11,7 +11,7 @@ DAYS_7 = 604800
 
 @st.cache_data(ttl=DAYS_7)  
 def load_lookup_table():
-    """Load recap table of NebulOSS metrics and cache it.
+    """Load recap table of NebulOS metrics and cache it.
     """
     df_nebuloss = pd.read_csv('data/df_nebuloss.csv').rename(columns = {'test_accuracy' : 'validation_accuracy'})
     
@@ -36,7 +36,7 @@ def compute_quantiles(df_nebuloss_dataset):
 
 # Streamlit app
 def main():
-    # load the lookup table of NebulOSS metrics
+    # load the lookup table of NebulOS metrics
     df_nebuloss = load_lookup_table()
     # add a title
     st.sidebar.title("Architecture Search App")
@@ -91,7 +91,7 @@ def main():
     arch_idx = searchspace_interface.architecture_to_index["/".join(results[0].genotype)]
     plt.scatter(df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == arch_idx, f'{device}_energy'], 
                 df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == arch_idx, 'validation_accuracy'], 
-                c = 'red', label = 'NebulOSS Architecture')
+                c = 'red', label = 'NebulOS Architecture')
     plt.xlabel(f'{device.upper()} energy')
     plt.ylabel('Validation Accuracy')
     plt.title(f'Validation Accuracy vs. {device.upper()} Energy - {dataset}')
@@ -127,7 +127,7 @@ def main():
     # we need to repeat the first value to close the circular graph:
     values=row_to_plot.values.flatten().tolist()
     values += values[:1]
-    ax.plot(angles, values, linewidth=1, linestyle='solid', label = 'NebulOSS Architecture', c = 'red')
+    ax.plot(angles, values, linewidth=1, linestyle='solid', label = 'NebulOS Architecture', c = 'red')
     # fill area
     ax.fill(angles, values, 'r', alpha=0.1)
     # add title

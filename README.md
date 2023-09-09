@@ -4,13 +4,13 @@
   </a>
 </div>
 
-# NebulOSS: Green-AI, for Real 🌿
+# NebulOS: Green-AI, for Real 🌿
 Welcome! 👋 
 This is the GitHub repository of the 18th ASP cycle coolest project! 🚀
 
 > Big news! A live demo of our project is available [here](link_to_live_demo).
 
-In NebulOSS, we push forward the work presented in FreeREA, focusing on delivering an end-to-end solution for automated and energy-efficient Deep Neural Network design for Computer Vision applications. You can find an extended abstract of this project [here](link_to_extended_abstract_website).
+In NebulOS, we push forward the work presented in FreeREA, focusing on delivering an end-to-end solution for automated and energy-efficient Deep Neural Network design for Computer Vision applications. You can find an extended abstract of this project [here](link_to_extended_abstract_website).
 
 ## Foreword 📝
 
@@ -29,7 +29,7 @@ FreeREA is a custom cell-based evolution NAS algorithm that aims to maximize mod
 HW-NAS-Bench is the first public dataset for Hardware-aware Neural Architecture Search (HW-NAS) research. It aims to democratize HW-NAS research to non-hardware experts and make HW-NAS research more reproducible and accessible. It includes the measured/estimated hardware performance of networks on various hardware devices. [Read more about HW-NAS-Bench](https://arxiv.org/abs/2103.10584).
 
 ## Contributions 🌟
-NebulOSS takes a step further by adopting actual hardware-aware metrics, as presented in HW-NAS-Bench, to perform the automated design of Deep Neural Architectures. Unlike traditional methods that use proxies like the number of parameters or flops, NebulOSS focuses on the energy consumption of the models, thoroughly measured by hardware experts.
+NebulOS takes a step further by adopting actual hardware-aware metrics, as presented in HW-NAS-Bench, to perform the automated design of Deep Neural Architectures. Unlike traditional methods that use proxies like the number of parameters or flops, NebulOS focuses on the energy consumption of the models, thoroughly measured by hardware experts.
 
 ### Relevancy of Using Actual Hardware-Aware Metrics
 - **Accuracy**: Provides more accurate and realistic evaluations.
@@ -37,7 +37,7 @@ NebulOSS takes a step further by adopting actual hardware-aware metrics, as pres
 - **Accessibility**: Democratizes HW-NAS research to non-hardware experts.
 
 ## How to Reproduce the Results 💻
-1. **Clone the Repository**: `git clone https://github.com/fracapuano/NebulOSS.git`
+1. **Clone the Repository**: `git clone https://github.com/fracapuano/NebulOS.git`
 2. **Install Dependencies**: Follow the instructions in the `requirements.txt` file.
 3. **Run the Code**: Use the provided scripts and guidelines in the repository.
 
@@ -45,4 +45,4 @@ NebulOSS takes a step further by adopting actual hardware-aware metrics, as pres
 # Daje matte caccia st'app de streamlit
 
 ## Conclusions 🌍
-NebulOSS is more than an extension; it's a revolution in the field of Green-AI. By adopting actual hardware-aware metrics, we are making a tangible difference in the world of Deep Neural Architectures. Join us in this journey towards a greener future!
+NebulOS is more than an extension; it's a revolution in the field of Green-AI. By adopting actual hardware-aware metrics, we are making a tangible difference in the world of Deep Neural Architectures. Join us in this journey towards a greener future!

@@ -39,7 +39,7 @@ def main():
     # load the lookup table of NebulOS metrics
     df_nebuloss = load_lookup_table()
     # add a title
-    st.sidebar.title("Architecture Search App")
+    st.sidebar.title("🚀 NebulOS 🌿")
 
     # dropdown menu for dataset selection
     dataset = st.sidebar.selectbox("Select Dataset", DATASETS)

@@ -1,6 +1,6 @@
 from search.ga import GeneticSearch
-from commons.hw_nats_fast_interface import HW_NATS_FastInterface
-from commons.utils import DEVICES
+from src.hw_nats_fast_interface import HW_NATS_FastInterface
+from src.utils import DEVICES
 import numpy as np
 import argparse
 

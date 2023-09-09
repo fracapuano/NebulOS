@@ -1,6 +1,6 @@
-from commons.hw_nats_fast_interface import HW_NATS_FastInterface
-from commons.genetics import FastIndividual
-from commons.genetics import Genetic, Population
+from src.hw_nats_fast_interface import HW_NATS_FastInterface
+from src.genetics import FastIndividual
+from src.genetics import Genetic, Population
 from typing import Iterable, Union, Text
 import numpy as np
 from collections import OrderedDict

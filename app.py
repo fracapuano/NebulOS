@@ -1,6 +1,6 @@
 from search.ga import GeneticSearch
-from commons.hw_nats_fast_interface import HW_NATS_FastInterface
-from commons.utils import DEVICES, DATASETS
+from src.hw_nats_fast_interface import HW_NATS_FastInterface
+from src.utils import DEVICES, DATASETS
 import streamlit as st
 import numpy as np
 import pandas as pd

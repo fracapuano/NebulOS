@@ -1,4 +1,4 @@
-from search.ga import GeneticSearch
+from src.search.ga import GeneticSearch
 from src.hw_nats_fast_interface import HW_NATS_FastInterface
 from src.utils import DEVICES, DATASETS
 import streamlit as st

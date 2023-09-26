@@ -225,4 +225,4 @@ class GeneticSearch:
         if not return_trajectory:
             return (best_individual, test_accuracy)
         else: 
-            return (best_individual, test_accuracy, bests)
+            return (best_individual, test_accuracy, bests, len(history))

@@ -5,9 +5,14 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from collections import OrderedDict
 st.set_page_config(layout="wide")
 
+TIME_TO_SCORE_EACH_ARCHITECTURE=0.15
 DAYS_7 = 604800
+NEBULOS_COLOR = '#FF6961'
+TF_COLOR = '#A7C7E7'
 
 @st.cache_data(ttl=DAYS_7)  
 def load_lookup_table():
@@ -36,6 +41,13 @@ def compute_quantiles(df_nebuloss_dataset):
 
 # Streamlit app
 def main():
+    # mapping the devices pseudo-symbols to actual names
+    device_mapping_dict = {
+        "edgegpu": "NVIDIA Jetson nano",
+        "eyeriss": "Eyeriss",
+        "fpga": "FPGA",
+    }
+
     # load the lookup table of NebulOS metrics
     df_nebuloss = load_lookup_table()
     # add a title
@@ -51,8 +63,8 @@ def main():
     performance_weight = st.sidebar.slider(
         "Select trade-off between PERFORMANCE WEIGHT and HARDWARE WEIGHT.\nHigher values will give larger weight to the performance.", 
         min_value=0.0, 
-        max_value=1.0, 
-        value=0.5, 
+        max_value=1.0,
+        value=0.5,
         step=0.05
     )
     # hardware weight (complementary to performance weight)
@@ -61,86 +73,156 @@ def main():
     # subset the dataframe for the current daset and device
     df_nebuloss_dataset = subset_dataframe(df_nebuloss, dataset)
 
-    # create a single figure
-    fig = plt.figure(figsize=(15, 6))
-
-    # SCATTER PLOT
-    # plot the architecture space for this combination of device and dataset
-    plt.subplot(1, 2, 1)
-    plt.scatter(
-        df_nebuloss_dataset.loc[df_nebuloss['dataset'] == dataset, f'{device}_energy'], 
-        df_nebuloss_dataset.loc[df_nebuloss['dataset'] == dataset, 'validation_accuracy'], 
-        c = 'lightgray'
-    )
-    # find the best architecture -> this will be plotted as a blue star on top of the other architectures
+    # best architecture index
     best_arch_idx = 9930
-    plt.scatter(df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == best_arch_idx, f'{device}_energy'], 
-                df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == best_arch_idx, 'validation_accuracy'], 
-                c = 'blue', marker = '*', label = 'Best TF-Architecture', s = 100)
 
-    # trigger the search
+    # Trigger the search and plot NebulOS Architecture
     searchspace_interface = HW_NATS_FastInterface(device=device, dataset=dataset)
     search = GeneticSearch(
-        searchspace=searchspace_interface, 
+        searchspace=searchspace_interface,
         fitness_weights=np.array([performance_weight, hardware_weight])
-        )
-    # this perform the actual architecture search
-    results = search.solve()
+    )
 
-    # plot the best architecture for this convex combination of weights -> this will be plotted as a red dot
+    results = search.solve(return_trajectory=True)
+
     arch_idx = searchspace_interface.architecture_to_index["/".join(results[0].genotype)]
-    plt.scatter(df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == arch_idx, f'{device}_energy'], 
-                df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == arch_idx, 'validation_accuracy'], 
-                c = 'red', label = 'NebulOS Architecture')
-    plt.xlabel(f'{device.upper()} energy')
-    plt.ylabel('Validation Accuracy')
-    plt.title(f'Validation Accuracy vs. {device.upper()} Energy - {dataset}')
-    plt.legend()
 
-    # RADAR CHART
-    # find the quantiles dataframe
-    quantiles = compute_quantiles(df_nebuloss_dataset)
-    # specify the variables you wish to appear in the chart
-    categories = ['flops', 'params', 'validation_accuracy', f'{device}_energy', f'{device}_latency']
-    # before, we found the best architecture
-    # now, we want to plot the corresponding row as a radar chart, where each value corresponds to the quantile of that column
-    row_to_plot = quantiles.loc[quantiles['idx'] == arch_idx, categories]
-    # number of variables
-    N = len(categories)            
+    # Create scatter plot
+    scatter_trace1 = go.Scatter(
+        x=df_nebuloss_dataset.loc[df_nebuloss['dataset'] == dataset, f'{device}_energy'],
+        y=df_nebuloss_dataset.loc[df_nebuloss['dataset'] == dataset, 'validation_accuracy'],
+        mode='markers',
+        marker=dict(color='#D3D3D3', size=5),
+        name='Architectures in the search space'
+    )
+
+    # Scatter plot for best architecture
+    scatter_trace2 = go.Scatter(
+        x=df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == best_arch_idx, f'{device}_energy'],
+        y=df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == best_arch_idx, 'validation_accuracy'],
+        mode='markers',
+        marker=dict(color=TF_COLOR, symbol='circle-dot', size=12),
+        name='Best TF-Architecture'
+    )
+
+    scatter_trace3 = go.Scatter(
+        x=df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == arch_idx, f'{device}_energy'],
+        y=df_nebuloss_dataset.loc[df_nebuloss_dataset['idx'] == arch_idx, 'validation_accuracy'],
+        mode='markers',
+        marker=dict(color=NEBULOS_COLOR, symbol='circle-dot', size=12),
+        name='NebulOS Architecture'
+    )
+    scatter_layout = go.Layout(
+        title=f'Validation Accuracy vs. {device_mapping_dict[device]} Energy Consumption',
+        xaxis=dict(title=f'{device.upper()} Energy'),
+        yaxis=dict(title='Validation Accuracy'),
+        showlegend=True
+    )
+    scatter_fig = go.Figure(data=[scatter_trace1, scatter_trace2, scatter_trace3], layout=scatter_layout)
+
+    # Extracting quantile values
+    metrics_considered = OrderedDict()
+    # these are the metrics that we want to plot
+    metrics_considered["flops"] = "FLOPS", 
+    metrics_considered["params"] = "Num. Params", 
+    metrics_considered["validation_accuracy"] = "Accuracy",
+    metrics_considered[f"{device}_energy"] = f"{device_mapping_dict[device]} - Energy Consumption",
+    metrics_considered[f"{device}_latency"] = f"{device_mapping_dict[device]} - Latency"
+
+
+    # this retrieves the optimal row
+    best_row_to_plot = df_nebuloss_dataset.loc[
+        df_nebuloss_dataset['idx'] == best_arch_idx, 
+        list(metrics_considered.keys())
+    ].values
+
+    # this retrieves the row that has been found by the NAS search
+    row_to_plot = df_nebuloss_dataset.loc[
+        df_nebuloss_dataset['idx'] == arch_idx, 
+        list(metrics_considered.keys())
+    ].values
+
+    row_to_plot = row_to_plot/best_row_to_plot
+    best_row_to_plot = best_row_to_plot/best_row_to_plot
+
+    best_row_to_plot = best_row_to_plot.flatten().tolist()
+    row_to_plot = row_to_plot.flatten().tolist()
+
+    # Bar chart for NebulOS Architecture
+    bar_trace1 = go.Bar(
+        x=list(metrics_considered.keys()),
+        y=row_to_plot,
+        name='NebulOS Architecture',
+        marker=dict(color=NEBULOS_COLOR)
+    )
+    # Bar chart for Best TF-Architecture
+    bar_trace2 = go.Bar(
+        x=list(metrics_considered.keys()),
+        y=best_row_to_plot,
+        name='Best TF-Architecture Found',
+        marker=dict(color=TF_COLOR)
+    )
+    # Layout configuration
+    bar_layout = go.Layout(
+        title=f'Hardware-Agnostic Architecture (blue) vs. NebulOS (red)',
+        yaxis=dict(title="(%)Hardware-Agnostic Architecture Value"),
+        barmode='group'
+    )
+
+    # Combining traces with the layout
+    bar_fig = go.Figure(data=[bar_trace2, bar_trace1], layout=bar_layout)
+
+    # Create two columns in Streamlit to show data near each other
+    col1, col2 = st.columns(2)
+
+    # Display scatter plot in the first column
+    with col1:
+        st.plotly_chart(scatter_fig)
+
+    # Display bar chart in the second column
+    with col2:
+        st.plotly_chart(bar_fig)
+
+    best_architecture = df_nebuloss_dataset.loc[
+        df_nebuloss_dataset['idx'] == best_arch_idx, 
+        list(metrics_considered.keys())
+    ]
+
+    best_architecture_string = searchspace_interface[best_arch_idx]["architecture_string"]
+
+    found_architecture = df_nebuloss_dataset.loc[
+        df_nebuloss_dataset['idx'] == arch_idx, 
+        list(metrics_considered.keys())
+    ]
+
+    message = \
+    f"""
+        <h4>NebulOS Search Process: Outcome</h4>
+        <p>
+        This search took ~{results[-1]*TIME_TO_SCORE_EACH_ARCHITECTURE} seconds (scoring {results[-1]} architectures using ~{TIME_TO_SCORE_EACH_ARCHITECTURE} seconds each)
+        </p>
+        The architecture found for <b>{device_mapping_dict[device]}</b> is: <b>{searchspace_interface[arch_idx]["architecture_string"]}</b><br>
+        The optimal (hardware-agnostic) architecture in the searchspace is <b>{best_architecture_string}</b>
+        </p>
+        <p>
+        You can find the recap, in terms of the percentage of the Training-Free metric found in the table to your right 👉
+        </p>
+    """
+
+    # Sample data - replace these with your actual ratio values
+    data = {
+        "Metric": ["FLOPS", "Number of Parameters", "Validation Accuracy", "Energy Consumption", "Latency"],
+        "NebulOS vs. Hardware Agnostic Network": ["{:.2g}%".format(val) for val in row_to_plot]
+    }
     
-    # What will be the angle of each axis in the plot? (we divide the plot / number of variable)
-    angles = [n / float(N) * 2 * np.pi for n in range(N)]
-    angles += angles[:1]
+    col1, _, col2 = st.columns([2,1,2])
+    recap_df = pd.DataFrame(data).sort_values(by="Metric").set_index("Metric")
     
-    # initialise the spider plot
-    ax = plt.subplot(122, polar=True)
+    with col1:
+        st.write(message, unsafe_allow_html=True)
     
-    # draw one axe per variable + add labels
-    plt.xticks(angles[:-1], categories, color='grey', size=8)
-    
-    # draw ylabels
-    ax.set_rlabel_position(0)
-    plt.yticks([.2, .4, .6, .8, 1], ["0.2", "0.4", "0.6", "0.8", "1"], color="grey", size=7)
-    plt.ylim(0,1)
-    
-    # we are going to plot the first line of the data frame.
-    # we need to repeat the first value to close the circular graph:
-    values=row_to_plot.values.flatten().tolist()
-    values += values[:1]
-    ax.plot(angles, values, linewidth=1, linestyle='solid', label = 'NebulOS Architecture', c = 'red')
-    # fill area
-    ax.fill(angles, values, 'r', alpha=0.1)
-    # add title
-    plt.title(f'Metrics for best architecture - {dataset}x{device.upper()}')
-    # plot the radar plot for the best architecture
-    best_row_to_plot = quantiles.loc[quantiles['idx'] == best_arch_idx, categories]
-    best_values=best_row_to_plot.values.flatten().tolist()
-    best_values += best_values[:1]
-    ax.plot(angles, best_values, linewidth=1, linestyle='solid', label = 'Best TF-Architecture', c = 'blue')
-    # Fill area
-    ax.fill(angles, best_values, 'b', alpha=0.1)
-    plt.legend(loc='upper right', bbox_to_anchor=(0.5, 0.1))
-    st.pyplot(fig)
+    with col2:
+        st.dataframe(recap_df)
 
 if __name__ == "__main__":
     main()
